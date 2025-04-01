@@ -2,6 +2,8 @@
 
 L'objectif est de prédire la résiliation des clients d'une entreprise de services téléphoniques et Internet à l'aide d'un modèle de Machine Learning.
 
+![user-interface](ui.png)
+
 - `CustomerID` : Un identifiant unique pour chaque client.
 - `Zip Code` : Le code postal de la résidence principale du client.
 - `Gender` : Le genre du client : Masculin, Féminin.
