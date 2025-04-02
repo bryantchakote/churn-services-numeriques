@@ -1,4 +1,4 @@
-# Classification du churn dans une entreprise de service numérique
+# Classification du churn dans une entreprise de services numériques
 
 L'objectif est de prédire la résiliation des clients d'une entreprise de services téléphoniques et Internet à l'aide d'un modèle de Machine Learning.
 
