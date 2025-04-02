@@ -6,6 +6,7 @@ from utils import (
     plot_cont_vs_target,
 )
 
+
 st.set_page_config(page_title="Analyse des données", layout="wide")
 
 st.title("Analyse des données")
@@ -23,6 +24,7 @@ st.write("- Les uns et les autres pourront donc avoir de meilleures pistes pour 
 
 # Séparation
 st.divider()
+
 
 
 
@@ -79,15 +81,15 @@ with internet:
 
     # Distribution
     with st.expander("📊 Distribution"):
-        plot_disc_variables(df=df_internet, cols=disc, n_rows=4, n_cols=4, segment=segment, figsize=(12, 8))
+        plot_disc_variables(df=df_internet, cols=disc, segment=segment)
 
     # Taux de churn
     with st.expander("🚨 Taux de churn"):
-        plot_disc_vs_target(df=df_internet, cols=disc_no_internet, n_cols=4, n_rows=2, segment=segment, figsize=(12, 6))
+        plot_disc_vs_target(df=df_internet, cols=disc_no_internet, segment=segment)
     
     # Taux de churn (services Internet)
     with st.expander("🛜 Taux de churn (services Internet)"):        
-        plot_disc_vs_target(df=df_internet, cols=internet_services, n_cols=6, n_rows=1, segment=segment, figsize=(12, 3))
+        plot_disc_vs_target(df=df_internet, cols=internet_services, n_rows=1, n_cols=6, segment=segment, height=300, width=1200, fig_title=f"Taux de churn selon les services Internet, Segment = {segment}", subplot_titles=["<br>".join(col.split()) for col in internet_services])
         
     # Séparation
     st.divider()
@@ -119,15 +121,15 @@ with no_internet:
 
     # Distribution
     with st.expander("📊 Distribution"):
-        plot_disc_variables(df=df_no_internet, cols=disc_no_internet, n_rows=2, n_cols=4, segment=segment, figsize=(12, 8))
+        plot_disc_variables(df=df_no_internet, cols=disc_no_internet, n_rows=2, n_cols=4, segment=segment)
 
     # Taux de churn
     with st.expander("🚨 Taux de churn"):
-        plot_disc_vs_target(df=df_no_internet, cols=disc_no_internet, n_cols=4, n_rows=2, segment=segment, figsize=(12, 6))
+        plot_disc_vs_target(df=df_no_internet, cols=disc_no_internet, segment=segment)
     
     # Taux de churn (services Internet)
     with st.expander("🛜 Taux de churn (services Internet) : Impertinent, juste pour la symétrie"):
-        plot_disc_vs_target(df=df_no_internet, cols=internet_services, n_cols=6, n_rows=1, segment=segment, figsize=(12, 3))
+        plot_disc_vs_target(df=df_no_internet, cols=internet_services, n_rows=1, n_cols=6, segment=segment, height=300, width=1200, fig_title=f"Taux de churn selon les services Internet, Segment = {segment}", subplot_titles=["<br>".join(col.split()) for col in internet_services], br_xtickslabels=True)
 
     # Séparation
     st.divider()
