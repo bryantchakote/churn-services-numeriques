@@ -2,7 +2,7 @@
 
 L'objectif est de prédire la résiliation des clients d'une entreprise de services téléphoniques et Internet à l'aide d'un modèle de Machine Learning.
 
-![user-interface](ui.png)
+![user-interface](./images/ui.png)
 
 - `CustomerID` : Un identifiant unique pour chaque client.
 - `Zip Code` : Le code postal de la résidence principale du client.
@@ -27,3 +27,25 @@ L'objectif est de prédire la résiliation des clients d'une entreprise de servi
 - `Total Charges` : Indique les frais totaux du client, calculés jusqu'à la fin du trimestre spécifié ci-dessus.
 - `CLTV` : Valeur vie client (Customer Lifetime Value). Une CLTV prédite est calculée à l'aide de formules d'entreprise et de données existantes. Plus la valeur est élevée, plus le client est précieux. Les clients de grande valeur doivent être surveillés pour éviter leur départ.
 - `Churn Value` : 1 = le client a quitté l'entreprise ce trimestre. 0 = le client est resté avec l'entreprise. Ceci est la variable à prédire.
+
+## Exécution
+
+1. Cloner le repo
+
+    ```sh
+    git clone https://github.com/bryantchakote/churn-services-numeriques.git
+    cd churn-services-numeriques
+    ```
+
+2. Configurer l'environnement (optionnel mais recommandé)
+
+    ```sh
+    conda env create -f environment.yaml
+    conda activate churn-env
+    ```
+
+3. Lancer l'application Streamlit
+
+    ```sh
+    streamlit run streamlit/home.py
+    ```
