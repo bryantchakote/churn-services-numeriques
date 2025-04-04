@@ -1,3 +1,4 @@
+import sys
 import streamlit as st
 import pandas as pd
 
@@ -11,8 +12,10 @@ if "df" not in st.session_state:
         st.success("Données chargées avec succès !")
     except FileNotFoundError as e:
         st.error("Impossible de charger les données, fichier introuvable.")
+        sys.exit()
 
-st.markdown("""
+st.markdown(
+    """
 L'objectif est de prédire la résiliation des clients d'une entreprise de services téléphoniques et Internet à l'aide d'un modèle de Machine Learning.
 
 - `CustomerID` : Un identifiant unique pour chaque client.
@@ -39,4 +42,5 @@ L'objectif est de prédire la résiliation des clients d'une entreprise de servi
 - `Total Charges` : Indique les frais totaux du client, calculés jusqu'à la fin du trimestre spécifié ci-dessus.
 - `CLTV` : Valeur vie client (Customer Lifetime Value). Une CLTV prédite est calculée à l'aide de formules d'entreprise et de données existantes. Plus la valeur est élevée, plus le client est précieux. Les clients de grande valeur doivent être surveillés pour éviter leur départ.
 - `Churn Value` : 1 = le client a quitté l'entreprise ce trimestre. 0 = le client est resté avec l'entreprise. Ceci est la variable à prédire.            
-""")
+"""
+)
