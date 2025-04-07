@@ -3,10 +3,6 @@ import joblib
 import streamlit as st
 import numpy as np
 
-import plotly.express as px
-import plotly.subplots as sp
-import plotly.graph_objects as go
-
 from utils import (
     plot_disc_variables,
     plot_disc_vs_target,
@@ -56,15 +52,10 @@ st.write(
 """
 )
 
-# Extraction de la latitude et de la longitude
-df["Lat"] = df["Lat Long"].str.split(", ").str[0].astype(float)
-df["Long"] = df["Lat Long"].str.split(", ").str[1].astype(float)
-
 # Suppression des valeurs manquantes
 df.dropna(inplace=True)
 
 # Catégorisation des variables
-coords = ["Lat", "Long"]
 disc = [
     "Gender",
     "Senior Citizen",
