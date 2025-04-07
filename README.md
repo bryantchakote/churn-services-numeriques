@@ -4,15 +4,15 @@ L'objectif est de prédire la résiliation des clients d'une entreprise de servi
 
 ## Présentation des interfaces
 
-### Une page d'accueil qui décrit les variables
+### 1. Une page d'accueil qui décrit les variables
 
 ![home](./images/home.png)
 
-### Quelques résultats d'analyse importants
+### 2. Les résultats d'analyse les plus importants
 
 ![data-analysis](./images/data-analysis.png)
 
-### Un playground pour tester différents modèles
+### 3. Un playground pour tester différents modèles
 
 ![model](./images/model.png)
 
