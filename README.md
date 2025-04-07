@@ -8,13 +8,21 @@ L'application compote 3 interfaces :
 
 ![home](./images/home.png)
 
+---
+
 - Quelques résultats d'analyse importants
 
 ![data-analysis](./images/data-analysis.png)
 
+---
+
 - Un playground pour tester différents modèles
 
 ![model](./images/model.png)
+
+---
+
+## Exécution
 
 1. Cloner le repo
 
