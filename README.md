@@ -2,7 +2,16 @@
 
 L'objectif est de prédire la résiliation des clients d'une entreprise de services téléphoniques et Internet à l'aide d'un modèle de Machine Learning.
 
-![user-interface](./images/ui.png)
+L'application compote 3 interfaces :
+
+- Une page d'accueil qui décrit les variables
+    ![home](./images/home.png)
+
+- Quelques résultats d'analyse importants
+    ![data-analysis](./images/data-analysis.png)
+
+- Un playground pour tester différents modèles
+    ![model](./images/model.png)
 
 1. Cloner le repo
 
