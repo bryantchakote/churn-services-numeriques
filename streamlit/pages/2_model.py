@@ -1,8 +1,8 @@
 import sys
-import joblib
 import streamlit as st
 import pandas as pd
 import numpy as np
+from utils import prepare_data
 
 from sklearn.model_selection import train_test_split
 
@@ -42,7 +42,7 @@ st.title("Modèle")
 # Récupération des données
 if "df" not in st.session_state:
     st.error(
-        "Impossible d'accéder aux données, veuillez retournez sur la page principale pour les charger."
+        "Impossible d'accéder aux données, veuillez retourner sur la page principale pour les charger."
     )
     sys.exit()
 
@@ -51,21 +51,13 @@ df = st.session_state["df"]
 # Suppression des valeurs manquantes
 df.dropna(inplace=True)
 
-# Extraction de la latitude et de la longitude
-df["Lat"] = df["Lat Long"].str.split(", ").str[0].astype(float)
-df["Long"] = df["Lat Long"].str.split(", ").str[1].astype(float)
-
-# Identification des nouveaux clients
-df["Is New Client"] = (df["Tenure Months"] <= 48).astype(int)
-
 # Affichage des résultats
 if "RESULTS_TWO_MODELS_DF" not in st.session_state:
     st.session_state["RESULTS_TWO_MODELS_DF"] = RESULTS_TWO_MODELS_DF
-
 if "RESULTS_UNIQUE_MODEL_DF" not in st.session_state:
     st.session_state["RESULTS_UNIQUE_MODEL_DF"] = RESULTS_UNIQUE_MODEL_DF
 
-# Préparation des données
+# Intro
 st.write(
     """
     - Cette interface vous permet d'entraîner votre propre modèle de prédiction du churn.
@@ -79,64 +71,17 @@ st.write(
 )
 
 
-# Séparation avec/sans Internet
-df_internet = df.query("`Internet Service` != 'No'").copy()
-df_no_internet = df.drop(df_internet.index).copy()
+# Préparation des données
+df_internet, df_no_internet = prepare_data(df, extract_coords=True, identify_new_clients=True, split_internet=True)
 
-
-# ---------------- Avec Internet ----------------
-# Ajout des groupes de `Monthly Charges`
-kmeans_internet = joblib.load("artifacts/internet/kmeans_internet.pkl")
-clusters_mapping_internet = joblib.load(
-    "artifacts/internet/clusters_mapping_internet.pkl"
-)
-
-df_internet["Monthly Charges Group"] = kmeans_internet.predict(
-    df_internet[["Monthly Charges"]]
-)
-df_internet["Monthly Charges Group"] = df_internet["Monthly Charges Group"].map(
-    clusters_mapping_internet
-)
-
-# Ajout de la colonne `Services Count` pour compter le nombre de services auxquels le client a souscrit
-internet_services = [
-    "Online Security",
-    "Online Backup",
-    "Device Protection",
-    "Tech Support",
-    "Streaming TV",
-    "Streaming Movies",
-]
-df_internet["Services Count"] = (
-    df_internet[internet_services]
-    .replace({"No": "0", "Yes": "1"})
-    .astype(int)
-    .sum(axis=1)
-)
-
-# Split train/test
+# Split train/test (Avec Internet)
 X_internet = df_internet.drop(columns="Churn Value")
 y_internet = df_internet["Churn Value"]
 X_train_internet, X_test_internet, y_train_internet, y_test_internet = train_test_split(
     X_internet, y_internet, test_size=0.2, random_state=42, stratify=y_internet
 )
 
-
-# ---------------- Sans Internet ----------------
-# Ajout des groupes de `Monthly Charges`
-kmeans_no_internet = joblib.load("artifacts/no_internet/kmeans_no_internet.pkl")
-clusters_mapping_no_internet = joblib.load(
-    "artifacts/no_internet/clusters_mapping_no_internet.pkl"
-)
-
-df_no_internet["Monthly Charges Group"] = kmeans_no_internet.predict(
-    df_no_internet[["Monthly Charges"]]
-)
-df_no_internet["Monthly Charges Group"] = df_no_internet["Monthly Charges Group"].map(
-    clusters_mapping_no_internet
-)
-
-# Split train/test
+# Split train/test (Sans Internet)
 X_no_internet = df_no_internet.drop(columns="Churn Value")
 y_no_internet = df_no_internet["Churn Value"]
 X_train_no_internet, X_test_no_internet, y_train_no_internet, y_test_no_internet = (
@@ -149,8 +94,7 @@ X_train_no_internet, X_test_no_internet, y_train_no_internet, y_test_no_internet
     )
 )
 
-
-# ---------------- All ----------------
+#  Split train/test (All)
 X_train = pd.concat([X_train_internet, X_train_no_internet])
 X_test = pd.concat([X_test_internet, X_test_no_internet])
 y_train = pd.concat([y_train_internet, y_train_no_internet])

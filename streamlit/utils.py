@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -608,3 +609,100 @@ COLS_TO_SHOW_UNIQUE_MODEL = [
     "disc",
     "cont",
 ]
+
+COLS_SPACE = {
+    "disc": {
+        "Gender": ["Male", "Female"],
+        "Senior Citizen": ["No", "Yes"],
+        "Partner": ["No", "Yes"],
+        "Dependents": ["No", "Yes"],
+        "Phone Service": ["No", "Yes"],
+        "Multiple Lines": (["No", "Yes"], ["No phone service"]),
+        "Internet Service": ["DSL", "Fiber optic", "No"],
+        "Online Security": (["No", "Yes"], ["No internet service"]),
+        "Online Backup": (["No", "Yes"], ["No internet service"]),
+        "Device Protection": (["No", "Yes"], ["No internet service"]),
+        "Tech Support": (["No", "Yes"], ["No internet service"]),
+        "Streaming TV": (["No", "Yes"], ["No internet service"]),
+        "Streaming Movies": (["No", "Yes"], ["No internet service"]),
+        "Contract": ["Month-to-month", "Two year", "One year"],
+        "Paperless Billing": ["No", "Yes"],
+        "Payment Method": ["Credit card (automatic)", "Mailed check", "Electronic check", "Bank transfer (automatic)"],
+    },
+    "cont": {
+        "Tenure Months": [0, 72, 30, 1],
+        "Monthly Charges": [15., 120., 70., 0.05],
+        "Total Charges": [15., 9000., 1500., 0.05],
+        "CLTV": [2000, 7000, 4500, 1],
+    },
+    "coords": {
+        "Zip Code": pd.read_csv("data/ZipCodesAndCoords.csv")["Zip Code"],
+    },
+}
+
+INTERNET_SERVICES = [
+    "Online Security",
+    "Online Backup",
+    "Device Protection",
+    "Tech Support",
+    "Streaming TV",
+    "Streaming Movies",
+]
+
+def prepare_data(df, extract_coords=True, identify_new_clients=True, split_internet=True):
+    # Extraction de la latitude et de la longitude
+    if extract_coords:
+        df["Lat"] = df["Lat Long"].str.split(", ").str[0].astype(float)
+        df["Long"] = df["Lat Long"].str.split(", ").str[1].astype(float)
+    
+    # Identification des nouveaux clients
+    if identify_new_clients:
+        df["Is New Client"] = (df["Tenure Months"] <= 48).astype(int)
+
+    # Séparation avec/sans Internet
+    if split_internet:
+        df_internet = df.query("`Internet Service` != 'No'").copy()
+        df_no_internet = df.drop(df_internet.index).copy()
+        
+        # Ajout des groupes de `Monthly Charges`
+        if "kmeans_internet" not in st.session_state:
+            st.session_state["kmeans_internet"] = joblib.load("artifacts/internet/kmeans_internet.pkl")
+        
+        if "clusters_mapping_internet" not in st.session_state:
+            st.session_state["clusters_mapping_internet"] = joblib.load("artifacts/internet/clusters_mapping_internet.pkl")
+        
+        if "kmeans_no_internet" not in st.session_state:
+            st.session_state["kmeans_no_internet"] = joblib.load("artifacts/no_internet/kmeans_no_internet.pkl")
+        
+        if "clusters_mapping_no_internet" not in st.session_state:
+            st.session_state["clusters_mapping_no_internet"] = joblib.load("artifacts/no_internet/clusters_mapping_no_internet.pkl")
+ 
+        if len(df_internet) > 0:
+            df_internet["Monthly Charges Group"] = st.session_state["kmeans_internet"].predict(df_internet[["Monthly Charges"]])
+            df_internet["Monthly Charges Group"] = df_internet["Monthly Charges Group"].map(st.session_state["clusters_mapping_internet"])
+        
+        if len(df_no_internet) > 0:
+            df_no_internet["Monthly Charges Group"] = st.session_state["kmeans_no_internet"].predict(df_no_internet[["Monthly Charges"]])
+            df_no_internet["Monthly Charges Group"] = df_no_internet["Monthly Charges Group"].map(st.session_state["clusters_mapping_no_internet"])
+        
+        # Ajout de la colonne `Services Count`
+        df_internet["Services Count"] = (
+            df_internet[INTERNET_SERVICES]
+            .replace({"No": "0", "Yes": "1"})
+            .astype(int)
+            .sum(axis=1)
+        )
+        
+        return df_internet, df_no_internet
+    
+    return df
+
+def inference_prediction(df, preprocessor, model):
+    if len(df) > 0:
+        processed_df = preprocessor.transform(df)
+        y_pred = model.predict(processed_df)
+        y_pred_proba = model.predict_proba(processed_df)
+        df["Pred"] = y_pred
+        df["Pred Proba"] = y_pred_proba[:, 1]
+    
+    return df

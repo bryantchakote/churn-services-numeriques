@@ -9,6 +9,7 @@ from utils import (
     plot_cont_vs_cont,
     plot_cont_vs_target,
     plot_clusters_scatterplots,
+    prepare_data,
 )
 
 
@@ -77,9 +78,8 @@ disc = [
 cont = ["Monthly Charges", "Total Charges", "Tenure Months", "CLTV"]
 target = "Churn Value"
 
-# Séparation Avec / Sans Internet
-df_internet = df[df["Internet Service"] != "No"].copy()
-df_no_internet = df[df["Internet Service"] == "No"].copy()
+# Préparation des données
+df_internet, df_no_internet = prepare_data(df, extract_coords=False, identify_new_clients=False, split_internet=True)
 
 # Autres groupes de variables
 disc_no_internet = [
@@ -258,18 +258,6 @@ with st.expander("Corrélations entre `Total Charges` et `Tenure Months`"):
     from scipy.stats import pearsonr
 
     c1, c2 = "Total Charges", "Tenure Months"
-
-    kmeans_internet = joblib.load("artifacts/internet/kmeans_internet.pkl")
-    clusters_mapping_internet = joblib.load(
-        "artifacts/internet/clusters_mapping_internet.pkl"
-    )
-
-    df_internet["Monthly Charges Group"] = kmeans_internet.predict(
-        df_internet[["Monthly Charges"]]
-    )
-    df_internet["Monthly Charges Group"] = df_internet["Monthly Charges Group"].map(
-        clusters_mapping_internet
-    )
 
     corr_all = pearsonr(df_internet[c1], df_internet[c2]).statistic
 

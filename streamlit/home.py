@@ -8,7 +8,7 @@ st.title("Classification du churn dans une entreprise de services numériques")
 
 if "df" not in st.session_state:
     try:
-        st.session_state["df"] = pd.read_csv("../DatasetChurn.csv")
+        st.session_state["df"] = pd.read_csv("data/DatasetChurn.csv")
         st.toast("Données chargées avec succès !")
     except FileNotFoundError as e:
         st.error("Impossible de charger les données, fichier introuvable.")
