@@ -16,6 +16,10 @@ L'objectif est de prédire la résiliation des clients d'une entreprise de servi
 
 ![model](./images/model.png)
 
+### 4. Une interface d'inférence sur de nouvelles données
+
+![inference](./images/inference.png)
+
 ## Exécution
 
 1. Cloner le repo
