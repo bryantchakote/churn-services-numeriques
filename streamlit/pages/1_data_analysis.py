@@ -62,8 +62,6 @@ cont = COLS_SPACE["cont"].keys()
 target = "Churn Value"
 
 # Préparation des données
-df.dropna(inplace=True)
-
 df_internet, df_no_internet = prepare_data(
     df, extract_coords=False, identify_new_clients=False, split_internet=True
 )
@@ -121,7 +119,9 @@ with no_internet:
 
     # Taux de churn
     with st.expander("🚨 Taux de churn"):
-        plot_disc_vs_target(df=df_no_internet, cols=DISC_NO_INTERNET[:-1], segment=segment)
+        plot_disc_vs_target(
+            df=df_no_internet, cols=DISC_NO_INTERNET[:-1], segment=segment
+        )
 
     # Taux de churn (services Internet)
     with st.expander("🛜 Taux de churn (services Internet) `Impertinent`"):

@@ -310,6 +310,9 @@ def prepare_data(
     identify_new_clients: bool = True,
     split_internet: bool = True,
 ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
+    # Suppression des valeurs manquantes
+    df.dropna(inplace=True)
+
     # Extraction de la latitude et de la longitude
     if extract_coords:
         df["Lat"] = df["Lat Long"].str.split(", ").str[0].astype(float)
