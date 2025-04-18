@@ -33,7 +33,7 @@ L'objectif est de prédire la résiliation des clients d'une entreprise de servi
 
     ```sh
     conda env create -f environment.yaml
-    conda activate churn-env
+    conda activate churn-services-numeriques
     ```
 
 3. Lancer l'application Streamlit
