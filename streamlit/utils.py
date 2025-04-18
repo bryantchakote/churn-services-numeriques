@@ -1,4 +1,6 @@
+import sys
 import joblib
+import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -16,9 +18,18 @@ from sklearn.metrics import (
 
 from xgboost import XGBClassifier
 
+from typing import List, Tuple, Dict, Literal, Union
+
 
 # Fonctions pour afficher les graphiques
-def plot_disc_variables(df, cols, n_rows=4, n_cols=4, segment="All", **kwargs):
+def plot_disc_variables(
+    df,
+    cols: List[str],
+    n_rows: int = 4,
+    n_cols: int = 4,
+    segment: Literal["Avec Internet", "Sans Internet", "All"] = "All",
+    **kwargs,
+) -> None:
     """Représente la distribution des variables discrètes."""
     fig = make_subplots(rows=n_rows, cols=n_cols, subplot_titles=cols)
 
@@ -53,8 +64,14 @@ def plot_disc_variables(df, cols, n_rows=4, n_cols=4, segment="All", **kwargs):
 
 
 def plot_disc_vs_target(
-    df, cols, n_rows=2, n_cols=4, segment="All", target="Churn Value", **kwargs
-):
+    df,
+    cols: List[str],
+    n_rows: int = 2,
+    n_cols: int = 4,
+    segment: Literal["All", "Avec Internet", "Sans Internet"] = "All",
+    target: str = "Churn Value",
+    **kwargs,
+) -> None:
     """Représente le taux de churn selon les différentes modalités des variables discrètes."""
 
     fig = make_subplots(
@@ -113,7 +130,13 @@ def plot_disc_vs_target(
     st.plotly_chart(fig)
 
 
-def plot_cont_vs_cont(df, cols, segment="All", target="Churn Value", **kwargs):
+def plot_cont_vs_cont(
+    df,
+    cols: List[str],
+    segment: Literal["All", "Avec Internet", "Sans Internet"] = "All",
+    target: str = "Churn Value",
+    **kwargs,
+) -> None:
     """Représente les relations entre plusieurs variables continues."""
 
     colors = {
@@ -156,8 +179,13 @@ def plot_cont_vs_cont(df, cols, segment="All", target="Churn Value", **kwargs):
 
 
 def plot_cont_vs_target(
-    df, cols, target_value, segment="All", target="Churn Value", **kwargs
-):
+    df,
+    cols: List[str],
+    target_value: Literal[0, 1],
+    segment: Literal["All", "Avec Internet", "Sans Internet"] = "All",
+    target: str = "Churn Value",
+    **kwargs,
+) -> None:
     """Représente la distribution des variables continues selon une valeur fixée de la variable cible."""
 
     color_id = 1 if target_value == 1 else 2
@@ -193,12 +221,12 @@ def plot_cont_vs_target(
 
 def plot_clusters_scatterplots(
     df,
-    x="Total Charges",
-    y="Tenure Months",
-    clusters=[0, 5, 10, 15, 19],
-    segment="Avec Internet",
+    x: str = "Total Charges",
+    y: str = "Tenure Months",
+    clusters: List[int] = [0, 5, 10, 15, 19],
+    segment: Literal["Avec Internet", "Sans Internet"] = "Avec Internet",
     **kwargs,
-):
+) -> None:
     # Exemples graphiques
     fig = make_subplots(
         rows=1,
@@ -275,7 +303,78 @@ def plot_clusters_scatterplots(
     st.plotly_chart(fig)
 
 
-# Variables pour le modèle
+# Préparation des données
+def prepare_data(
+    df,
+    extract_coords: bool = True,
+    identify_new_clients: bool = True,
+    split_internet: bool = True,
+) -> Union[Tuple[pd.DataFrame, pd.DataFrame], pd.DataFrame]:
+    # Extraction de la latitude et de la longitude
+    if extract_coords:
+        df["Lat"] = df["Lat Long"].str.split(", ").str[0].astype(float)
+        df["Long"] = df["Lat Long"].str.split(", ").str[1].astype(float)
+
+    # Identification des nouveaux clients
+    if identify_new_clients:
+        df["Is New Client"] = (df["Tenure Months"] <= 48).astype(int)
+
+    # Séparation avec/sans Internet
+    if split_internet:
+        df_internet = df.query("`Internet Service` != 'No'").copy()
+        df_no_internet = df.drop(df_internet.index).copy()
+
+        # Ajout des groupes de `Monthly Charges`
+        if "kmeans_internet" not in st.session_state:
+            st.session_state["kmeans_internet"] = joblib.load(
+                "artifacts/internet/kmeans_internet.pkl"
+            )
+
+        if "clusters_mapping_internet" not in st.session_state:
+            st.session_state["clusters_mapping_internet"] = joblib.load(
+                "artifacts/internet/clusters_mapping_internet.pkl"
+            )
+
+        if "kmeans_no_internet" not in st.session_state:
+            st.session_state["kmeans_no_internet"] = joblib.load(
+                "artifacts/no_internet/kmeans_no_internet.pkl"
+            )
+
+        if "clusters_mapping_no_internet" not in st.session_state:
+            st.session_state["clusters_mapping_no_internet"] = joblib.load(
+                "artifacts/no_internet/clusters_mapping_no_internet.pkl"
+            )
+
+        if len(df_internet) > 0:
+            df_internet["Monthly Charges Group"] = st.session_state[
+                "kmeans_internet"
+            ].predict(df_internet[["Monthly Charges"]])
+            df_internet["Monthly Charges Group"] = df_internet[
+                "Monthly Charges Group"
+            ].map(st.session_state["clusters_mapping_internet"])
+
+        if len(df_no_internet) > 0:
+            df_no_internet["Monthly Charges Group"] = st.session_state[
+                "kmeans_no_internet"
+            ].predict(df_no_internet[["Monthly Charges"]])
+            df_no_internet["Monthly Charges Group"] = df_no_internet[
+                "Monthly Charges Group"
+            ].map(st.session_state["clusters_mapping_no_internet"])
+
+        # Ajout de la colonne `Services Count`
+        df_internet["Services Count"] = (
+            df_internet[INTERNET_SERVICES]
+            .replace({"No": "0", "Yes": "1"})
+            .astype(int)
+            .sum(axis=1)
+        )
+
+        return df_internet, df_no_internet
+
+    return df
+
+
+# Variables pour le modèle (discrètes, continues, par défaut, par segment)
 DISC_INTERNET = [
     "Gender",
     "Senior Citizen",
@@ -418,7 +517,7 @@ CONT_UNIQUE_MODEL_DEFAULT = [
     "Long",
 ]
 
-# Default hyperparameter values
+# Valeurs par défaut des hyperparamètres
 PARAMS_INTERNET_DEFAULT = {
     "learning_rate": 0.02,
     "scale_pos_weight": 3,
@@ -438,8 +537,10 @@ PARAMS_UNIQUE_MODEL_DEFAULT = {
 }
 
 
-# Modeling functions
-def preprocess_data(X_train, X_test, disc, cont):
+# Fonctions de modélisation
+def preprocess_data(
+    X_train, X_test, disc: List[str], cont: List[str]
+) -> Tuple[np.ndarray, np.ndarray]:
     preprocessor = ColumnTransformer(
         transformers=[
             ("disc", OneHotEncoder(drop="first", handle_unknown="ignore"), disc),
@@ -459,18 +560,25 @@ def train_model(
     y_train,
     X_test_preprocessed,
     y_test,
-    params,
-    disc,
-    cont,
-    model_type,
-):
+    params: Dict[str, Union[int, float]],
+    disc: List[str],
+    cont: List[str],
+    model_type: Literal["INTERNET", "NO INTERNET", "UNIQUE MODEL"],
+) -> Tuple[Dict[str, Union[int, float, List[str]]], np.ndarray, np.ndarray]:
+    if X_train_preprocessed.shape[1] == 0:
+        st.error("Aucune colonne sélectionnée")
+        sys.exit()
+
     with st.spinner("Entraînement du modèle..."):
+        # Entraînement
         clf = XGBClassifier(random_state=42, **params)
         clf.fit(X_train_preprocessed, y_train)
 
+        # Prédictions
         y_pred_train = clf.predict(X_train_preprocessed)
         y_pred_test = clf.predict(X_test_preprocessed)
 
+        # Métriques
         metrics = {
             # Test
             "accuracy_test": accuracy_score(y_test, y_pred_test),
@@ -487,8 +595,11 @@ def train_model(
         suffix = "" if model_type == "UNIQUE_MODEL" else f"_{model_type.lower()}"
         metrics = {f"{key}{suffix}": value for key, value in metrics.items()}
 
+        # Sauvegarde des paramètres
         metrics.update(params)
 
+        # Sauvegarde des variables suivant le modèle :
+        # VARIABLES_PAR_DEFAUT + variables rajoutées - variables supprimées
         DISC_MODEL_TYPE_DEFAULT = globals()[f"DISC_{model_type}_DEFAULT"]
         disc_added = list({*disc}.difference({*DISC_MODEL_TYPE_DEFAULT}))
         disc_added = ["+"] + disc_added if len(disc_added) > 0 else []
@@ -509,7 +620,7 @@ def train_model(
         return metrics, y_pred_test, y_pred_train
 
 
-# Model results (benchmarks)
+# Résultats des modèles de benchmark
 RESULTS_TWO_MODELS_DATA = {
     # Performances - All - Test
     "accuracy_test": [0.8462177888611804],
@@ -610,6 +721,7 @@ COLS_TO_SHOW_UNIQUE_MODEL = [
     "cont",
 ]
 
+# Ensemble des valeurs prises par les variables
 COLS_SPACE = {
     "disc": {
         "Gender": ["Male", "Female"],
@@ -627,12 +739,17 @@ COLS_SPACE = {
         "Streaming Movies": (["No", "Yes"], ["No internet service"]),
         "Contract": ["Month-to-month", "Two year", "One year"],
         "Paperless Billing": ["No", "Yes"],
-        "Payment Method": ["Credit card (automatic)", "Mailed check", "Electronic check", "Bank transfer (automatic)"],
+        "Payment Method": [
+            "Credit card (automatic)",
+            "Mailed check",
+            "Electronic check",
+            "Bank transfer (automatic)",
+        ],
     },
     "cont": {
         "Tenure Months": [0, 72, 30, 1],
-        "Monthly Charges": [15., 120., 70., 0.05],
-        "Total Charges": [15., 9000., 1500., 0.05],
+        "Monthly Charges": [15.0, 120.0, 70.0, 0.05],
+        "Total Charges": [15.0, 9000.0, 1500.0, 0.05],
         "CLTV": [2000, 7000, 4500, 1],
     },
     "coords": {
@@ -640,6 +757,7 @@ COLS_SPACE = {
     },
 }
 
+# Liste des services Internet
 INTERNET_SERVICES = [
     "Online Security",
     "Online Backup",
@@ -649,60 +767,14 @@ INTERNET_SERVICES = [
     "Streaming Movies",
 ]
 
-def prepare_data(df, extract_coords=True, identify_new_clients=True, split_internet=True):
-    # Extraction de la latitude et de la longitude
-    if extract_coords:
-        df["Lat"] = df["Lat Long"].str.split(", ").str[0].astype(float)
-        df["Long"] = df["Lat Long"].str.split(", ").str[1].astype(float)
-    
-    # Identification des nouveaux clients
-    if identify_new_clients:
-        df["Is New Client"] = (df["Tenure Months"] <= 48).astype(int)
 
-    # Séparation avec/sans Internet
-    if split_internet:
-        df_internet = df.query("`Internet Service` != 'No'").copy()
-        df_no_internet = df.drop(df_internet.index).copy()
-        
-        # Ajout des groupes de `Monthly Charges`
-        if "kmeans_internet" not in st.session_state:
-            st.session_state["kmeans_internet"] = joblib.load("artifacts/internet/kmeans_internet.pkl")
-        
-        if "clusters_mapping_internet" not in st.session_state:
-            st.session_state["clusters_mapping_internet"] = joblib.load("artifacts/internet/clusters_mapping_internet.pkl")
-        
-        if "kmeans_no_internet" not in st.session_state:
-            st.session_state["kmeans_no_internet"] = joblib.load("artifacts/no_internet/kmeans_no_internet.pkl")
-        
-        if "clusters_mapping_no_internet" not in st.session_state:
-            st.session_state["clusters_mapping_no_internet"] = joblib.load("artifacts/no_internet/clusters_mapping_no_internet.pkl")
- 
-        if len(df_internet) > 0:
-            df_internet["Monthly Charges Group"] = st.session_state["kmeans_internet"].predict(df_internet[["Monthly Charges"]])
-            df_internet["Monthly Charges Group"] = df_internet["Monthly Charges Group"].map(st.session_state["clusters_mapping_internet"])
-        
-        if len(df_no_internet) > 0:
-            df_no_internet["Monthly Charges Group"] = st.session_state["kmeans_no_internet"].predict(df_no_internet[["Monthly Charges"]])
-            df_no_internet["Monthly Charges Group"] = df_no_internet["Monthly Charges Group"].map(st.session_state["clusters_mapping_no_internet"])
-        
-        # Ajout de la colonne `Services Count`
-        df_internet["Services Count"] = (
-            df_internet[INTERNET_SERVICES]
-            .replace({"No": "0", "Yes": "1"})
-            .astype(int)
-            .sum(axis=1)
-        )
-        
-        return df_internet, df_no_internet
-    
-    return df
-
-def inference_prediction(df, preprocessor, model):
+# Prédictions en mode inférence
+def inference_prediction(df, preprocessor, model) -> pd.DataFrame:
     if len(df) > 0:
         processed_df = preprocessor.transform(df)
         y_pred = model.predict(processed_df)
         y_pred_proba = model.predict_proba(processed_df)
         df["Pred"] = y_pred
         df["Pred Proba"] = y_pred_proba[:, 1]
-    
+
     return df
