@@ -1,7 +1,7 @@
 import sys
-import joblib
 import streamlit as st
 import numpy as np
+from scipy.stats import pearsonr
 
 from utils import (
     plot_disc_variables,
@@ -10,6 +10,9 @@ from utils import (
     plot_cont_vs_target,
     plot_clusters_scatterplots,
     prepare_data,
+    COLS_SPACE,
+    DISC_NO_INTERNET,
+    INTERNET_SERVICES,
 )
 
 
@@ -43,7 +46,7 @@ st.divider()
 st.subheader("Vision d'ensemble")
 st.dataframe(df.head())
 
-# Commentaire général
+# Commentaire
 st.write(
     """
     - On constate une répartition inégale de la variable cible : 16% des 6011 clients résilient leur contrat.
@@ -53,53 +56,17 @@ st.write(
 """
 )
 
-# Suppression des valeurs manquantes
-df.dropna(inplace=True)
-
 # Catégorisation des variables
-disc = [
-    "Gender",
-    "Senior Citizen",
-    "Partner",
-    "Dependents",
-    "Phone Service",
-    "Multiple Lines",
-    "Internet Service",
-    "Online Security",
-    "Online Backup",
-    "Device Protection",
-    "Tech Support",
-    "Streaming TV",
-    "Streaming Movies",
-    "Contract",
-    "Paperless Billing",
-    "Payment Method",
-]
-cont = ["Monthly Charges", "Total Charges", "Tenure Months", "CLTV"]
+disc = COLS_SPACE["disc"].keys()
+cont = COLS_SPACE["cont"].keys()
 target = "Churn Value"
 
 # Préparation des données
-df_internet, df_no_internet = prepare_data(df, extract_coords=False, identify_new_clients=False, split_internet=True)
+df.dropna(inplace=True)
 
-# Autres groupes de variables
-disc_no_internet = [
-    "Gender",
-    "Senior Citizen",
-    "Partner",
-    "Dependents",
-    "Multiple Lines",
-    "Contract",
-    "Paperless Billing",
-    "Payment Method",
-]
-internet_services = [
-    "Online Security",
-    "Online Backup",
-    "Device Protection",
-    "Tech Support",
-    "Streaming TV",
-    "Streaming Movies",
-]
+df_internet, df_no_internet = prepare_data(
+    df, extract_coords=False, identify_new_clients=False, split_internet=True
+)
 
 # Séparation
 st.divider()
@@ -108,9 +75,9 @@ st.divider()
 # ---------------- Variables discrètes ---------------
 st.subheader("1. Variables discrètes")
 
-# Création de 2 colonnes pour chaque segment
 internet, no_internet = st.columns(2)
 
+# Avec Internet
 with internet:
     st.markdown("#### Avec Internet")
     segment = "Avec Internet"
@@ -121,23 +88,23 @@ with internet:
 
     # Taux de churn
     with st.expander("🚨 Taux de churn"):
-        plot_disc_vs_target(df=df_internet, cols=disc_no_internet, segment=segment)
+        plot_disc_vs_target(df=df_internet, cols=DISC_NO_INTERNET[:-1], segment=segment)
 
     # Taux de churn (services Internet)
     with st.expander("🛜 Taux de churn (services Internet)"):
         plot_disc_vs_target(
             df=df_internet,
-            cols=internet_services,
+            cols=INTERNET_SERVICES,
             n_rows=1,
             n_cols=6,
             segment=segment,
             height=300,
             width=1200,
             fig_title=f"Taux de churn selon les services Internet, Segment = {segment}",
-            subplot_titles=["<br>".join(col.split()) for col in internet_services],
+            subplot_titles=["<br>".join(col.split()) for col in INTERNET_SERVICES],
         )
 
-
+# Sans Internet
 with no_internet:
     st.markdown("#### Sans Internet")
     segment = "Sans Internet"
@@ -146,7 +113,7 @@ with no_internet:
     with st.expander("📊 Distribution"):
         plot_disc_variables(
             df=df_no_internet,
-            cols=disc_no_internet,
+            cols=DISC_NO_INTERNET[:-1],
             n_rows=2,
             n_cols=4,
             segment=segment,
@@ -154,23 +121,24 @@ with no_internet:
 
     # Taux de churn
     with st.expander("🚨 Taux de churn"):
-        plot_disc_vs_target(df=df_no_internet, cols=disc_no_internet, segment=segment)
+        plot_disc_vs_target(df=df_no_internet, cols=DISC_NO_INTERNET[:-1], segment=segment)
 
     # Taux de churn (services Internet)
     with st.expander("🛜 Taux de churn (services Internet) `Impertinent`"):
         plot_disc_vs_target(
             df=df_no_internet,
-            cols=internet_services,
+            cols=INTERNET_SERVICES,
             n_rows=1,
             n_cols=6,
             segment=segment,
             height=300,
             width=1200,
             fig_title=f"Taux de churn selon les services Internet, Segment = {segment}",
-            subplot_titles=["<br>".join(col.split()) for col in internet_services],
+            subplot_titles=["<br>".join(col.split()) for col in INTERNET_SERVICES],
             br_xtickslabels=True,
         )
 
+# Commentaire
 with st.expander("💬 Commentaire"):
     st.write(
         """
@@ -201,10 +169,9 @@ st.divider()
 # ---------------- Variables continues ---------------
 st.subheader("2. Variables continues")
 
-# Création de 2 colonnes pour chaque segment
 internet, no_internet = st.columns(2)
 
-
+# Avec Internet
 with internet:
     st.markdown("#### Avec Internet")
     segment = "Avec Internet"
@@ -218,7 +185,7 @@ with internet:
     with st.expander("🔗 Relations"):
         plot_cont_vs_cont(df=df_internet, cols=cont, segment=segment)
 
-
+# Sans Internet
 with no_internet:
     st.markdown("#### Sans Internet")
     segment = "Sans Internet"
@@ -236,6 +203,7 @@ with no_internet:
     with st.expander("🔗 Relations"):
         plot_cont_vs_cont(df=df_no_internet, cols=cont, segment=segment)
 
+# Commentaire
 with st.expander("💬 Commentaire"):
     st.write(
         """
@@ -254,9 +222,9 @@ with st.expander("💬 Commentaire"):
     """
     )
 
+# Correlation observée après discrétisation de `Monthly Charges`
 with st.expander("Corrélations entre `Total Charges` et `Tenure Months`"):
-    from scipy.stats import pearsonr
-
+    # Calcul des correlations intra-clusters
     c1, c2 = "Total Charges", "Tenure Months"
 
     corr_all = pearsonr(df_internet[c1], df_internet[c2]).statistic
@@ -273,6 +241,7 @@ with st.expander("Corrélations entre `Total Charges` et `Tenure Months`"):
     """
     )
 
+    # Représentation graphique
     plot_clusters_scatterplots(
         df_internet, corr_all=corr_all, corr_clusters=corr_clusters
     )

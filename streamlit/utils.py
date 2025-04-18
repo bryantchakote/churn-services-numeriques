@@ -374,7 +374,7 @@ def prepare_data(
     return df
 
 
-# Variables pour le modèle (discrètes, continues, par défaut, par segment)
+# Catégorisation des variables (discrètes, continues, par défaut, par segment)
 DISC_INTERNET = [
     "Gender",
     "Senior Citizen",
