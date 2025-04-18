@@ -2,7 +2,6 @@ import sys
 import streamlit as st
 import pandas as pd
 import numpy as np
-from utils import prepare_data
 
 from sklearn.model_selection import train_test_split
 
@@ -26,6 +25,7 @@ from utils import (
     DISC_UNIQUE_MODEL_DEFAULT,
     CONT_UNIQUE_MODEL,
     CONT_UNIQUE_MODEL_DEFAULT,
+    prepare_data,
     preprocess_data,
     train_model,
     RESULTS_TWO_MODELS_DF,
@@ -48,9 +48,6 @@ if "df" not in st.session_state:
 
 df = st.session_state["df"]
 
-# Suppression des valeurs manquantes
-df.dropna(inplace=True)
-
 # Affichage des résultats
 if "RESULTS_TWO_MODELS_DF" not in st.session_state:
     st.session_state["RESULTS_TWO_MODELS_DF"] = RESULTS_TWO_MODELS_DF
@@ -72,7 +69,9 @@ st.write(
 
 
 # Préparation des données
-df_internet, df_no_internet = prepare_data(df, extract_coords=True, identify_new_clients=True, split_internet=True)
+df_internet, df_no_internet = prepare_data(
+    df, extract_coords=True, identify_new_clients=True, split_internet=True
+)
 
 # Split train/test (Avec Internet)
 X_internet = df_internet.drop(columns="Churn Value")
@@ -104,16 +103,18 @@ y_test = pd.concat([y_test_internet, y_test_no_internet])
 # Séparation
 st.divider()
 
-
+# Choix du type de modèle (unique ou séparé)
 train_separated_models = st.toggle("Modèles séparés", True)
 
-
+# Modèles séparés
 if train_separated_models:
     internet, no_internet = st.columns(2, gap="large")
 
+    # Avec Internet
     with internet:
         st.subheader("Clients avec Internet")
 
+        # Hyperparamètres
         with st.expander("Ajustement des hyperparamètres"):
             param1_internet, param2_internet, param3_internet = st.columns(
                 3, gap="large"
@@ -135,12 +136,12 @@ if train_separated_models:
                 key="scale_pos_weight_internet",
             )
             subsample_internet = param3_internet.slider(
-                "Subsample",
+                "subsample",
                 min_value=0.8,
                 max_value=1.0,
                 value=0.8,
                 step=0.1,
-                key="Subsample_internet",
+                key="subsample_internet",
             )
             params_internet = {
                 "learning_rate": learning_rate_internet,
@@ -148,6 +149,7 @@ if train_separated_models:
                 "subsample": subsample_internet,
             }
 
+        # Variables
         with st.expander("Sélection des variables", expanded=True):
             disc_internet = st.multiselect(
                 "Variables discrètes",
@@ -168,13 +170,18 @@ if train_separated_models:
             # Preprocessing
             X_train_internet_preprocessed, X_test_internet_preprocessed = (
                 preprocess_data(
-                    X_train_internet, X_test_internet, disc_internet, cont_internet
+                    X_train=X_train_internet,
+                    X_test=X_test_internet,
+                    disc=disc_internet,
+                    cont=cont_internet,
                 )
             )
 
+    # Sans Internet
     with no_internet:
         st.subheader("Clients sans Internet")
 
+        # Hyperparamètres
         with st.expander("Ajustement des hyperparamètres"):
             param1_no_internet, param2_no_internet, param3_no_internet = st.columns(
                 3, gap="large"
@@ -196,12 +203,12 @@ if train_separated_models:
                 key="scale_pos_weight_no_internet",
             )
             subsample_no_internet = param3_no_internet.slider(
-                "Subsample",
+                "subsample",
                 min_value=0.8,
                 max_value=1.0,
                 value=0.8,
                 step=0.1,
-                key="Subsample_no_internet",
+                key="subsample_no_internet",
             )
             params_no_internet = {
                 "learning_rate": learning_rate_no_internet,
@@ -209,6 +216,7 @@ if train_separated_models:
                 "subsample": subsample_no_internet,
             }
 
+        # Variables
         with st.expander("Sélection des variables", expanded=True):
             disc_no_internet = st.multiselect(
                 "Variables discrètes",
@@ -237,16 +245,18 @@ if train_separated_models:
             # Preprocessing
             X_train_no_internet_preprocessed, X_test_no_internet_preprocessed = (
                 preprocess_data(
-                    X_train_no_internet,
-                    X_test_no_internet,
-                    disc_no_internet,
-                    cont_no_internet,
+                    X_train=X_train_no_internet,
+                    X_test=X_test_no_internet,
+                    disc=disc_no_internet,
+                    cont=cont_no_internet,
                 )
             )
 
+# Modèle unique
 else:
     st.subheader("Tous les clients (modèle unique)")
 
+    # Hyperparamètres
     with st.expander("Ajustement des hyperparamètres"):
         param1_unique_model, param2_unique_model, param3_unique_model = st.columns(
             3, gap="large"
@@ -268,12 +278,12 @@ else:
             key="scale_pos_weight_unique_model",
         )
         subsample_unique_model = param3_unique_model.slider(
-            "Subsample",
+            "subsample",
             min_value=0.8,
             max_value=1.0,
             value=0.8,
             step=0.1,
-            key="Subsample_unique_model",
+            key="subsample_unique_model",
         )
         params_unique_model = {
             "learning_rate": learning_rate_unique_model,
@@ -281,6 +291,7 @@ else:
             "subsample": subsample_unique_model,
         }
 
+    # Variables
     with st.expander("Sélection des variables", expanded=True):
         disc_unique_model = st.multiselect(
             "Variables discrètes",
@@ -308,37 +319,45 @@ else:
 
         # Preprocessing
         X_train_preprocessed, X_test_preprocessed = preprocess_data(
-            X_train, X_test, disc_unique_model, cont_unique_model
+            X_train=X_train,
+            X_test=X_test,
+            disc=disc_unique_model,
+            cont=cont_unique_model,
         )
 
+# Entraînement du modèle
 run_train = st.button("Entraîner le modèle")
 
 if run_train:
+    # Modèles séparés
     if train_separated_models:
+        # Métriques (Avec Internet)
         metrics_internet, y_pred_test_internet, y_pred_train_internet = train_model(
-            X_train_internet_preprocessed,
-            y_train_internet,
-            X_test_internet_preprocessed,
-            y_test_internet,
-            params_internet,
-            disc_internet,
-            cont_internet,
-            "INTERNET",
+            X_train_preprocessed=X_train_internet_preprocessed,
+            y_train=y_train_internet,
+            X_test_preprocessed=X_test_internet_preprocessed,
+            y_test=y_test_internet,
+            params=params_internet,
+            disc=disc_internet,
+            cont=cont_internet,
+            model_type="INTERNET",
         )
 
+        # Métriques (Sans Internet)
         metrics_no_internet, y_pred_test_no_internet, y_pred_train_no_internet = (
             train_model(
-                X_train_no_internet_preprocessed,
-                y_train_no_internet,
-                X_test_no_internet_preprocessed,
-                y_test_no_internet,
-                params_no_internet,
-                disc_no_internet,
-                cont_no_internet,
-                "NO_INTERNET",
+                X_train_preprocessed=X_train_no_internet_preprocessed,
+                y_train=y_train_no_internet,
+                X_test_preprocessed=X_test_no_internet_preprocessed,
+                y_test=y_test_no_internet,
+                params=params_no_internet,
+                disc=disc_no_internet,
+                cont=cont_no_internet,
+                model_type="NO_INTERNET",
             )
         )
 
+        # Métriques (All)
         y_pred_test = np.concat([y_pred_test_internet, y_pred_test_no_internet])
         y_pred_train = np.concat([y_pred_train_internet, y_pred_train_no_internet])
 
@@ -351,14 +370,15 @@ if run_train:
                 {k: v for k, v in metrics.items() if k.endswith(model_type)}
             )
 
-        # Calcul des performances globales
         for split in ["test", "train"]:
             for metric in ["accuracy", "precision", "recall", "f1"]:
                 metrics_two_models[f"{metric}_{split}"] = globals()[f"{metric}_score"](
                     y_true=globals()[f"y_{split}"], y_pred=globals()[f"y_pred_{split}"]
                 )
+                # Exemple (première itération) : split = "test", metric = "accuracy"
+                # metrics_two_models["accuracy_test"] = accuracy_score(y_true=y_test, y_pred=y_pred_test)
 
-        # Append des hyperparamètres
+        # Hyperparamètres
         metrics_two_models.update(
             {
                 k: [metrics_internet[k]] + [metrics_no_internet[k]]
@@ -366,7 +386,7 @@ if run_train:
             }
         )
 
-        # Append des variables
+        # Variables
         metrics_two_models.update(
             {
                 k: metrics_internet[k] + ["AND"] + metrics_no_internet[k]
@@ -374,48 +394,51 @@ if run_train:
             }
         )
 
-        metrics_two_models = {k: [v] for k, v in metrics_two_models.items()}
-
+        # Sauvegarde des résultats
         st.session_state["RESULTS_TWO_MODELS_DF"] = pd.concat(
             [
                 st.session_state["RESULTS_TWO_MODELS_DF"],
-                pd.DataFrame(metrics_two_models),
+                pd.DataFrame([metrics_two_models]),
             ],
             ignore_index=True,
         )
-    else:
-        metrics_unique_model, _, _ = train_model(
-            X_train_preprocessed,
-            y_train,
-            X_test_preprocessed,
-            y_test,
-            params_unique_model,
-            disc_unique_model,
-            cont_unique_model,
-            "UNIQUE_MODEL",
-        )
 
-        metrics_unique_model = {k: [v] for k, v in metrics_unique_model.items()}
+    # Modèle unique
+    else:
+        # Métriques, hyperparamètres et variables
+        metrics_unique_model, _, _ = train_model(
+            X_train_preprocessed=X_train_preprocessed,
+            y_train=y_train,
+            X_test_preprocessed=X_test_preprocessed,
+            y_test=y_test,
+            params=params_unique_model,
+            disc=disc_unique_model,
+            cont=cont_unique_model,
+            model_type="UNIQUE_MODEL",
+        )
 
         st.session_state["RESULTS_UNIQUE_MODEL_DF"] = pd.concat(
             [
                 st.session_state["RESULTS_UNIQUE_MODEL_DF"],
-                pd.DataFrame(metrics_unique_model),
+                pd.DataFrame([metrics_unique_model]),
             ],
             ignore_index=True,
         )
 
-
+# Séparation
 st.divider()
 
+# Affichage des résultats
 two_models, unique_model = st.columns(2, gap="large")
 
+# Modèles séparés
 with two_models:
     st.subheader("Résultats (modèles séparés)")
     st.dataframe(
         st.session_state["RESULTS_TWO_MODELS_DF"], column_order=COLS_TO_SHOW_TWO_MODELS
     )
 
+# Modèle unique
 with unique_model:
     st.subheader("Résultats (modèle unique)")
     st.dataframe(

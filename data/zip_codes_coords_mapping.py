@@ -21,12 +21,16 @@ zc = zc.merge(df, how="left", on="Zip Code")
 # Retrouver les coordonnées manquantes
 geocoder = pgeocode.Nominatim("us")
 
+
 def get_coordinates(zip_code):
-    location = geocoder.query_postal_code(zip_code)    
+    location = geocoder.query_postal_code(zip_code)
     return pd.Series({"Lat": location.latitude, "Long": location.longitude})
 
+
 missing_coords_index = zc.loc[zc.isna().any(axis=1)].index
-zc.loc[missing_coords_index, ["Lat", "Long"]] = zc.loc[missing_coords_index, "Zip Code"].apply(get_coordinates)
+zc.loc[missing_coords_index, ["Lat", "Long"]] = zc.loc[
+    missing_coords_index, "Zip Code"
+].apply(get_coordinates)
 
 # Sauvegarde
 zc.to_csv("ZipCodesAndCoords.csv", index=False)
