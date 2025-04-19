@@ -57,8 +57,8 @@ st.write(
 )
 
 # Catégorisation des variables
-disc = COLS_SPACE["disc"].keys()
-cont = COLS_SPACE["cont"].keys()
+disc = list(COLS_SPACE["disc"].keys())
+cont = list(COLS_SPACE["cont"].keys())
 target = "Churn Value"
 
 # Préparation des données
