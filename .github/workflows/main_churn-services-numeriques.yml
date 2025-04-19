@@ -19,27 +19,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - name: Set up Python version
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      
-      - name: Sync dependencies with uv
-        run: uv sync
+          python-version: "3.12"
 
-      # - name: Set up Python version
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: '3.12'
+      - name: Create and start virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
 
-      # - name: Create and start virtual environment
-      #   run: |
-      #     python -m venv venv
-      #     source venv/bin/activate
-      
-      # - name: Install dependencies
-      #   run: pip install -r requirements.txt
-        
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
@@ -57,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: "Production"
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write #This is required for requesting the JWT
@@ -72,7 +64,6 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -80,10 +71,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_91932B267E67409898F1C81D8BD3503E }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C34EA69B497F4ED5B89EC0FDB71ED6C1 }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: "Deploy to Azure Web App"
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'churn-services-numeriques'
-          slot-name: 'Production'
-          
+          app-name: "churn-services-numeriques"
+          slot-name: "Production"
