@@ -22,6 +22,10 @@ L'objectif est de prédire la résiliation des clients d'une entreprise de servi
 
 ## Exécution
 
+- Tester directement depuis la Web App Azure : https://churn-services-numeriques.azurewebsites.net/
+
+**OU**
+
 1. Cloner le repo
 
     ```sh
